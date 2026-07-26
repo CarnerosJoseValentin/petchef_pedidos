@@ -1,0 +1,73 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+    function getRol() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.rol;
+    }
+    function isAdmin() {
+      return isSignedIn() && getRol() == 'admin';
+    }
+    function isStaff() {
+      return isSignedIn() && getRol() in ['admin', 'produccion', 'logistica'];
+    }
+
+    // Usuarios
+    match /users/{userId} {
+      allow read: if isSignedIn() && (request.auth.uid == userId || isAdmin());
+
+      // Crear: solo el propio usuario, y siempre arranca como 'cliente'
+      allow create: if isSignedIn() && request.auth.uid == userId &&
+        request.resource.data.rol == 'cliente';
+
+      // Actualizar datos propios: sin poder tocar el rol
+      allow update: if isSignedIn() && request.auth.uid == userId &&
+        request.resource.data.rol == resource.data.rol;
+
+      // Solo admin puede cambiar roles o borrar usuarios
+      allow update, delete: if isAdmin();
+    }
+
+    // Ingredientes
+    match /ingredientes/{ingredienteId} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
+
+    // Cupones
+    match /cupones/{cuponId} {
+      allow read: if isSignedIn();
+      allow create, delete: if isAdmin();
+      allow update: if isAdmin();
+
+      // Cualquier autenticado SOLO puede incrementar el uso en 1, nada más
+      allow update: if isSignedIn() &&
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['usoActual', 'updatedAt']) &&
+        request.resource.data.usoActual == resource.data.usoActual + 1;
+    }
+
+    // Pedidos
+    match /pedidos/{pedidoId} {
+      allow read: if isSignedIn() &&
+        (isStaff() || resource.data.usuarioId == request.auth.uid);
+
+      allow create: if isSignedIn() &&
+        request.resource.data.usuarioId == request.auth.uid &&
+        request.resource.data.estado == 'pendiente';
+
+      // Staff operativo: no puede tocar precios ni reasignar dueño
+      allow update: if isSignedIn() && isStaff() &&
+        request.resource.data.usuarioId == resource.data.usuarioId &&
+        request.resource.data.precios == resource.data.precios;
+    }
+
+    // Configuración
+    match /configuracion/{configId} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
+  }
+}
