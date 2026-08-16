@@ -29,9 +29,12 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
+pglite-debug.log
 
-# env files (can opt-in for committing if needed)
+# env files (nunca commitear los reales; sí commitear los .example como plantilla)
 .env*
+!.env.example
+!functions/.env.example
 
 # vercel
 .vercel
@@ -40,4 +43,5 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
+# firebase build cache (no es código fuente, se regenera solo)
 .firebase/

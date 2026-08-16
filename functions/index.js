@@ -1,4 +1,4 @@
-import { https, config } from "firebase-functions";
+import { https } from "firebase-functions";
 import { initializeApp } from "firebase-admin/app";
 import { getFirestore, FieldValue } from "firebase-admin/firestore";
 import { MercadoPagoConfig, Preference, Payment } from "mercadopago";
@@ -185,25 +185,18 @@ export const crearPreferenciaMercadoPago = https.onCall(
       const tipoMascota = pedidoData.viandas?.[0]?.mascotaTipo || "mascota";
 
       // ---------- CONFIG ----------
-      const mpConfig = config().mercadopago || {};
-      const appConfig = config().app || {};
-
-      const accessToken =
-        mpConfig.access_token || process.env.MP_ACCESS_TOKEN || "";
+      // Antes leía primero de functions.config() (deprecado por Firebase) con
+      // fallback a process.env; ahora solo variables de entorno.
+      const accessToken = process.env.MP_ACCESS_TOKEN || "";
       const webhookUrl =
-        mpConfig.webhook_url ||
         process.env.WEBHOOK_URL ||
         "https://us-central1-petchefpedidos.cloudfunctions.net/webhookMercadoPago";
 
-      // App URL: preferir config(), fallback process.env y por último el dominio por defecto
       let appUrl =
-        appConfig.url && typeof appConfig.url === "string" && appConfig.url.startsWith("http")
-          ? appConfig.url
-          : process.env.APP_URL && process.env.APP_URL.startsWith("http")
+        process.env.APP_URL && process.env.APP_URL.startsWith("http")
           ? process.env.APP_URL
           : "https://petchef.web.app";
 
-      // Si por alguna razón appUrl quedó vacío forzamos fallback
       if (!appUrl || typeof appUrl !== "string") {
         appUrl = "https://petchef.web.app";
       }
@@ -211,8 +204,7 @@ export const crearPreferenciaMercadoPago = https.onCall(
       const isLocal = appUrl.startsWith("http://");
 
       // ---------- LOGS DE DEBUG ----------
-      console.log("🔍 MP config:", JSON.stringify(mpConfig));
-      console.log("🔍 appConfig:", JSON.stringify(appConfig));
+      console.log("🔍 appUrl:", appUrl);
       console.log("🔐 accessToken present:", !!accessToken, accessToken ? accessToken.slice(0, 8) + "..." : "MISSING");
       console.log("🌐 appUrl:", appUrl, "isLocal:", isLocal);
       console.log("🔗 webhookUrl:", webhookUrl);
@@ -359,9 +351,7 @@ export const webhookMercadoPago = https.onRequest(async (req, res) => {
     }
 
     // Instancia de MercadoPago SDK
-    const mpConfig = config().mercadopago || {};
-    const accessToken =
-      mpConfig.access_token || process.env.MP_ACCESS_TOKEN || "";
+    const accessToken = process.env.MP_ACCESS_TOKEN || "";
 
     if (!accessToken) {
       console.error("❌ No hay access_token configurado");
@@ -471,8 +461,8 @@ export const verificarEstadoPago = https.onCall(async (data, context) => {
  */
 const enviarWhatsApp = async (to, templateName, variables) => {
   try {
-    const accessToken = config().whatsapp?.access_token;
-    const phoneNumberId = config().whatsapp?.phone_number_id;
+    const accessToken = process.env.WHATSAPP_ACCESS_TOKEN;
+    const phoneNumberId = process.env.WHATSAPP_PHONE_NUMBER_ID;
 
     if (!accessToken || !phoneNumberId) {
       console.error('Credenciales de WhatsApp no configuradas');
