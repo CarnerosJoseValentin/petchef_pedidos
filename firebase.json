@@ -17,6 +17,10 @@
     "source": "functions"
   },
   "firestore": {
-  "rules": "firestore.rules"
+    "rules": "firestore.rules"
+  },
+  "emulators": {
+    "firestore": { "port": 8080 },
+    "auth": { "port": 9099 }
   }
 }

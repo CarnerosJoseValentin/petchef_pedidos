@@ -60,7 +60,7 @@ async function requireStaff(context) {
  * solo se valida que sea uno de los valores configurados en /configuracion
  * (ver nota en el código). Es una limitación conocida, documentada abajo.
  */
-async function recalcularTotalesPedido(pedido) {
+export async function recalcularTotalesPedido(pedido) {
   const ingredienteCache = {};
   let subtotalViandas = 0;
 
