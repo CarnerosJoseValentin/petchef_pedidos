@@ -135,7 +135,7 @@ export default function Confirmacion() {
         sessionStorage.setItem("ultimoPedidoId", pedidoId);
         sessionStorage.setItem("ultimoNumeroPedido", result.numeroPedido);
 
-        window.location.href = preferenceResult.sandboxInitPoint;
+        window.location.href = preferenceResult.initPoint;
         return;
       }
 
