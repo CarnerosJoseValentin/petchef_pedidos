@@ -1,4 +1,4 @@
 /** @type {import('jest').Config} */
 module.exports = {
-  testMatch: ["<rootDir>/tests/**/*.test.js"],
+  testPathIgnorePatterns: ["/node_modules/", "/functions/"],
 };
