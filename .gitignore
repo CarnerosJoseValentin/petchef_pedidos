@@ -45,3 +45,6 @@ next-env.d.ts
 
 # firebase build cache (no es código fuente, se regenera solo)
 .firebase/
+
+# logs del emulador de Firebase (se generan solos al correr firebase emulators)
+*-debug.log

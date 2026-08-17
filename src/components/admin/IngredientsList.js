@@ -108,7 +108,7 @@ const IngredientsList = ({ onEditIngredient, onNewIngredient }) => {
                           : "ml-1"
                       }
                     >
-                      {ingrediente.stockGramos}g
+                      {ingrediente.stockGramos.toLocaleString("es-AR")}g
                     </span>
                     {ingrediente.stockGramos <= ingrediente.stockMinimo && (
                       <span className="text-orange-600"> ⚠️ Bajo</span>

@@ -78,7 +78,7 @@ export default function AdminDashboard() {
                   <div key={ing.id} className="flex justify-between text-sm">
                     <span className="font-medium">{ing.nombre}</span>
                     <span className="text-orange-600">
-                      {ing.stockGramos}g (mín: {ing.stockMinimo}g)
+                      {ing.stockGramos.toLocaleString("es-AR")}g (mín: {ing.stockMinimo.toLocaleString("es-AR")}g)
                     </span>
                   </div>
                 ))}
@@ -101,14 +101,15 @@ const StatCard = ({ title, value, icon, alert }) => (
       <div>
         <p className="text-sm text-gray-600">{title}</p>
         <p
-          className={`text-2xl font-bold ${
+          className={`text-2xl font-bold truncate ${
             alert ? "text-orange-600" : "text-primary"
           }`}
+          title={typeof value === "string" ? value : undefined}
         >
           {value}
         </p>
       </div>
-      <div className="text-3xl">{icon}</div>
+      <div className="text-3xl shrink-0">{icon}</div>
     </div>
   </div>
 );

@@ -51,7 +51,7 @@ export function useSeleccionIngredientes({
       const usado = stockUsadoEnCarrito[ingredienteId] || 0;
       alert(
         `⚠️ Stock insuficiente\n\n` +
-          `Disponible en tienda: ${ingrediente.stockGramos}g\n` +
+          `Disponible en tienda: ${ingrediente.stockGramos.toLocaleString("es-AR")}g\n` +
           `Ya en tu carrito: ${usado}g\n` +
           `Disponible para esta vianda: ${stockReal}g`
       );

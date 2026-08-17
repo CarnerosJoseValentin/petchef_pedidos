@@ -5,6 +5,11 @@ import { Input } from '../ui/Input';
 import { Button } from '../ui/Button';
 import { CATEGORIAS_INGREDIENTES, TIPO_MASCOTA } from '../../utils/constants';
 
+// Tope de sanidad: nadie va a tener más de 1 tonelada de un mismo
+// ingrediente. Evita que un error de tipeo (ceros de más) rompa la UI del
+// dashboard y las vistas de stock.
+const MAX_STOCK_GRAMOS = 1000000; // 1000 kg
+
 const IngredientForm = ({ ingrediente, onClose, onSave }) => {
   const isEditing = !!ingrediente; // Detectar si es editar o crear
   
@@ -43,6 +48,8 @@ const IngredientForm = ({ ingrediente, onClose, onSave }) => {
       // CREAR: validar stock inicial
       if (!formData.stockGramos || parseInt(formData.stockGramos) < 0) {
         newErrors.stockGramos = 'Stock inicial no puede ser negativo';
+      } else if (parseInt(formData.stockGramos) > MAX_STOCK_GRAMOS) {
+        newErrors.stockGramos = `Stock inicial no puede superar ${MAX_STOCK_GRAMOS.toLocaleString()}g (revisá que no haya ceros de más)`;
       }
     } else {
       // EDITAR: validar ajuste si hay valor
@@ -89,7 +96,15 @@ const IngredientForm = ({ ingrediente, onClose, onSave }) => {
             setLoading(false);
             return;
           }
-          
+
+          if (nuevoStock > MAX_STOCK_GRAMOS) {
+            setErrors({
+              ajusteStock: `El ajuste resultaría en ${nuevoStock.toLocaleString()}g, más del tope de ${MAX_STOCK_GRAMOS.toLocaleString()}g (revisá que no haya ceros de más)`,
+            });
+            setLoading(false);
+            return;
+          }
+
           dataToUpdate.stockGramos = nuevoStock;
         }
 
@@ -196,7 +211,7 @@ const IngredientForm = ({ ingrediente, onClose, onSave }) => {
                   Stock actual
                 </label>
                 <div className="w-full px-4 py-3 bg-gray-100 border border-gray-300 rounded-lg text-gray-700">
-                  {formData.stockGramos}g
+                  {Number(formData.stockGramos).toLocaleString("es-AR")}g
                 </div>
               </div>
 
