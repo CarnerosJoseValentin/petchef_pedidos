@@ -2,6 +2,7 @@ import ProtectedRoute from "../../components/auth/ProtectedRoute";
 import { useAuth } from "../../hooks/useAuth";
 import { useIngredientes } from "../../hooks/useIngredientes";
 import Layout from "../../components/layout/Layout";
+import { gramosAKgTexto } from "../../utils/stock";
 
 export default function AdminDashboard() {
   const { userData } = useAuth();
@@ -78,7 +79,7 @@ export default function AdminDashboard() {
                   <div key={ing.id} className="flex justify-between text-sm">
                     <span className="font-medium">{ing.nombre}</span>
                     <span className="text-orange-600">
-                      {ing.stockGramos.toLocaleString("es-AR")}g (mín: {ing.stockMinimo.toLocaleString("es-AR")}g)
+                      {gramosAKgTexto(ing.stockGramos)}kg (mín: {gramosAKgTexto(ing.stockMinimo)}kg)
                     </span>
                   </div>
                 ))}
@@ -98,7 +99,7 @@ const StatCard = ({ title, value, icon, alert }) => (
     }`}
   >
     <div className="flex items-center justify-between">
-      <div>
+      <div className="min-w-0 flex-1">
         <p className="text-sm text-gray-600">{title}</p>
         <p
           className={`text-2xl font-bold truncate ${

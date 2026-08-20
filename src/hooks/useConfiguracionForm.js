@@ -102,7 +102,7 @@ export function useConfiguracionForm(configuracion) {
       whatsapp: {
         whatsapp: {
           numeroNegocio: config.numeroWhatsApp,
-          apiConfigurada: false,
+          apiConfigurada: true,
         },
       },
       horarios: {

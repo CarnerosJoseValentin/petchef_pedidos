@@ -4,62 +4,73 @@ import { db } from '../../lib/firebase';
 import { Input } from '../ui/Input';
 import { Button } from '../ui/Button';
 import { CATEGORIAS_INGREDIENTES, TIPO_MASCOTA } from '../../utils/constants';
+import { gramosAKgTexto, gramosAKgInput, kgInputAGramos } from '../../utils/stock';
 
 // Tope de sanidad: nadie va a tener más de 1 tonelada de un mismo
 // ingrediente. Evita que un error de tipeo (ceros de más) rompa la UI del
 // dashboard y las vistas de stock.
-const MAX_STOCK_GRAMOS = 1000000; // 1000 kg
+const MAX_STOCK_KG = 1000;
+const MAX_STOCK_GRAMOS = MAX_STOCK_KG * 1000;
+
+// El stock se guarda y se calcula en gramos en toda la app (Cloud Functions,
+// validación de pedidos, etc. dependen de esa unidad). Este formulario
+// muestra y recibe los valores en kilogramos solo para que sea más fácil de
+// leer/tipear, y convierte a gramos recién al guardar.
 
 const IngredientForm = ({ ingrediente, onClose, onSave }) => {
   const isEditing = !!ingrediente; // Detectar si es editar o crear
-  
+
   const [formData, setFormData] = useState({
     nombre: '',
     categoria: '',
     tipoMascota: '',
     precioGramo: '',
-    stockGramos: '',
-    stockMinimo: '',
+    stockGramos: '', // se mantiene en gramos internamente (viene de Firestore)
     activo: true
   });
-  
-  const [ajusteStock, setAjusteStock] = useState(''); 
+
+  const [stockInicialKg, setStockInicialKg] = useState(''); // solo al crear
+  const [stockMinimoKg, setStockMinimoKg] = useState('');
+  const [ajusteStockKg, setAjusteStockKg] = useState(''); // solo al editar
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState({});
 
   useEffect(() => {
     if (ingrediente) {
       setFormData(ingrediente);
+      setStockMinimoKg(gramosAKgInput(ingrediente.stockMinimo));
     }
   }, [ingrediente]);
 
   const validateForm = () => {
     const newErrors = {};
-    
+
     if (!formData.nombre.trim()) newErrors.nombre = 'Nombre requerido';
     if (!formData.categoria) newErrors.categoria = 'Categoría requerida';
     if (!formData.tipoMascota) newErrors.tipoMascota = 'Tipo de mascota requerido';
     if (!formData.precioGramo || parseFloat(formData.precioGramo) <= 0) {
       newErrors.precioGramo = 'Precio debe ser mayor a 0';
     }
-    
+
     // Validación diferente según crear/editar
     if (!isEditing) {
       // CREAR: validar stock inicial
-      if (!formData.stockGramos || parseInt(formData.stockGramos) < 0) {
-        newErrors.stockGramos = 'Stock inicial no puede ser negativo';
-      } else if (parseInt(formData.stockGramos) > MAX_STOCK_GRAMOS) {
-        newErrors.stockGramos = `Stock inicial no puede superar ${MAX_STOCK_GRAMOS.toLocaleString()}g (revisá que no haya ceros de más)`;
+      const stockInicialGramos = kgInputAGramos(stockInicialKg);
+      if (!stockInicialKg || stockInicialGramos < 0) {
+        newErrors.stockInicialKg = 'Stock inicial no puede ser negativo';
+      } else if (stockInicialGramos > MAX_STOCK_GRAMOS) {
+        newErrors.stockInicialKg = `Stock inicial no puede superar ${MAX_STOCK_KG.toLocaleString()}kg (revisá que no haya ceros de más)`;
       }
     } else {
       // EDITAR: validar ajuste si hay valor
-      if (ajusteStock !== '' && isNaN(parseInt(ajusteStock))) {
-        newErrors.ajusteStock = 'El ajuste debe ser un número';
+      if (ajusteStockKg !== '' && isNaN(parseFloat(ajusteStockKg.replace(',', '.')))) {
+        newErrors.ajusteStockKg = 'El ajuste debe ser un número';
       }
     }
-    
-    if (!formData.stockMinimo || parseInt(formData.stockMinimo) < 0) {
-      newErrors.stockMinimo = 'Stock mínimo no puede ser negativo';
+
+    const stockMinimoGramos = kgInputAGramos(stockMinimoKg);
+    if (!stockMinimoKg || stockMinimoGramos < 0) {
+      newErrors.stockMinimoKg = 'Stock mínimo no puede ser negativo';
     }
 
     setErrors(newErrors);
@@ -68,11 +79,11 @@ const IngredientForm = ({ ingrediente, onClose, onSave }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     if (!validateForm()) return;
-    
+
     setLoading(true);
-    
+
     try {
       if (isEditing) {
         // MODO EDICIÓN
@@ -81,25 +92,25 @@ const IngredientForm = ({ ingrediente, onClose, onSave }) => {
           categoria: formData.categoria,
           tipoMascota: formData.tipoMascota,
           precioGramo: parseFloat(formData.precioGramo),
-          stockMinimo: parseInt(formData.stockMinimo),
+          stockMinimo: kgInputAGramos(stockMinimoKg),
           activo: formData.activo,
           updatedAt: new Date()
         };
 
         // Si hay ajuste de stock, calcular nuevo stock
-        if (ajusteStock !== '') {
-          const ajuste = parseInt(ajusteStock);
-          const nuevoStock = parseInt(formData.stockGramos) + ajuste;
-          
+        if (ajusteStockKg !== '') {
+          const ajusteGramos = kgInputAGramos(ajusteStockKg);
+          const nuevoStock = parseInt(formData.stockGramos) + ajusteGramos;
+
           if (nuevoStock < 0) {
-            setErrors({ ajusteStock: 'El ajuste resultaría en stock negativo' });
+            setErrors({ ajusteStockKg: 'El ajuste resultaría en stock negativo' });
             setLoading(false);
             return;
           }
 
           if (nuevoStock > MAX_STOCK_GRAMOS) {
             setErrors({
-              ajusteStock: `El ajuste resultaría en ${nuevoStock.toLocaleString()}g, más del tope de ${MAX_STOCK_GRAMOS.toLocaleString()}g (revisá que no haya ceros de más)`,
+              ajusteStockKg: `El ajuste resultaría en ${gramosAKgTexto(nuevoStock)}kg, más del tope de ${MAX_STOCK_KG.toLocaleString()}kg (revisá que no haya ceros de más)`,
             });
             setLoading(false);
             return;
@@ -116,8 +127,8 @@ const IngredientForm = ({ ingrediente, onClose, onSave }) => {
           categoria: formData.categoria,
           tipoMascota: formData.tipoMascota,
           precioGramo: parseFloat(formData.precioGramo),
-          stockGramos: parseInt(formData.stockGramos),
-          stockMinimo: parseInt(formData.stockMinimo),
+          stockGramos: kgInputAGramos(stockInicialKg),
+          stockMinimo: kgInputAGramos(stockMinimoKg),
           activo: formData.activo,
           createdAt: new Date(),
           updatedAt: new Date()
@@ -202,7 +213,9 @@ const IngredientForm = ({ ingrediente, onClose, onSave }) => {
             error={errors.precioGramo}
           />
 
-          {/* STOCK - Diferente según crear/editar */}
+          {/* STOCK - Diferente según crear/editar. El peso por vianda (arriba,
+              precio por GRAMO) sigue en gramos; el STOCK de inventario se
+              muestra en kilogramos para que sea más fácil de leer. */}
           {isEditing ? (
             <>
               {/* Mostrar stock actual (solo lectura) */}
@@ -211,24 +224,25 @@ const IngredientForm = ({ ingrediente, onClose, onSave }) => {
                   Stock actual
                 </label>
                 <div className="w-full px-4 py-3 bg-gray-100 border border-gray-300 rounded-lg text-gray-700">
-                  {Number(formData.stockGramos).toLocaleString("es-AR")}g
+                  {gramosAKgTexto(formData.stockGramos)}kg
                 </div>
               </div>
 
               {/* Campo para ajustar stock */}
               <Input
-                label="Ajustar stock (gramos)"
+                label="Ajustar stock (kg)"
                 type="number"
-                value={ajusteStock}
-                onChange={(e) => setAjusteStock(e.target.value)}
-                error={errors.ajusteStock}
-                placeholder="Ej: +500 o -200"
+                step="0.01"
+                value={ajusteStockKg}
+                onChange={(e) => setAjusteStockKg(e.target.value)}
+                error={errors.ajusteStockKg}
+                placeholder="Ej: +5 o -2.5"
               />
               <p className="text-xs text-gray-500 mb-4 -mt-2">
-                Usa números positivos para agregar stock o negativos para reducir. 
-                {ajusteStock && !isNaN(parseInt(ajusteStock)) && (
+                Usa números positivos para agregar stock o negativos para reducir.
+                {ajusteStockKg && !isNaN(parseFloat(ajusteStockKg.replace(',', '.'))) && (
                   <span className="font-bold text-primary ml-1">
-                    Nuevo stock: {parseInt(formData.stockGramos) + parseInt(ajusteStock)}g
+                    Nuevo stock: {gramosAKgTexto(parseInt(formData.stockGramos) + kgInputAGramos(ajusteStockKg))}kg
                   </span>
                 )}
               </p>
@@ -236,31 +250,33 @@ const IngredientForm = ({ ingrediente, onClose, onSave }) => {
           ) : (
             /* Campo de stock inicial solo al crear */
             <Input
-              label="Stock inicial (gramos)"
+              label="Stock inicial (kg)"
               type="number"
+              step="0.01"
               min="0"
-              value={formData.stockGramos}
-              onChange={(e) => setFormData({...formData, stockGramos: e.target.value})}
-              error={errors.stockGramos}
+              value={stockInicialKg}
+              onChange={(e) => setStockInicialKg(e.target.value)}
+              error={errors.stockInicialKg}
             />
           )}
 
           <Input
-            label="Stock mínimo (gramos)"
+            label="Stock mínimo (kg)"
             type="number"
+            step="0.01"
             min="0"
-            value={formData.stockMinimo}
-            onChange={(e) => setFormData({...formData, stockMinimo: e.target.value})}
-            error={errors.stockMinimo}
+            value={stockMinimoKg}
+            onChange={(e) => setStockMinimoKg(e.target.value)}
+            error={errors.stockMinimoKg}
           />
 
           <div className="flex gap-4 mt-6">
             <Button type="submit" disabled={loading} className="flex-1">
               {loading ? 'Guardando...' : 'Guardar'}
             </Button>
-            <Button 
-              type="button" 
-              variant="secondary" 
+            <Button
+              type="button"
+              variant="secondary"
               onClick={onClose}
               className="flex-1"
             >

@@ -4,6 +4,7 @@ import { db } from "../../lib/firebase";
 import { useIngredientes } from "../../hooks/useIngredientes";
 import { Card } from "../ui/Card";
 import { Button } from "../ui/Button";
+import { gramosAKgTexto } from "../../utils/stock";
 
 const IngredientsList = ({ onEditIngredient, onNewIngredient }) => {
   const { ingredientes, loading } = useIngredientes(null, false); // false = traer todos
@@ -108,7 +109,7 @@ const IngredientsList = ({ onEditIngredient, onNewIngredient }) => {
                           : "ml-1"
                       }
                     >
-                      {ingrediente.stockGramos.toLocaleString("es-AR")}g
+                      {gramosAKgTexto(ingrediente.stockGramos)}kg
                     </span>
                     {ingrediente.stockGramos <= ingrediente.stockMinimo && (
                       <span className="text-orange-600"> ⚠️ Bajo</span>

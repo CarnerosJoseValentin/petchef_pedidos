@@ -550,11 +550,19 @@ const notificarPedidoConfirmado = async (pedidoData) => {
  * Notificación: Pedido en Preparación
  */
 export const notificarPedidoPreparacion = async (pedidoData) => {
+  let cantidadTotal = 0;
+  let tipoMascotaPrincipal = 'perro';
+
+  if (pedidoData.viandas && Array.isArray(pedidoData.viandas)) {
+    cantidadTotal = pedidoData.viandas.reduce((sum, v) => sum + (v.cantidadViandas || 0), 0);
+    tipoMascotaPrincipal = pedidoData.viandas[0]?.mascotaTipo || 'perro';
+  }
+
   const variables = [
     pedidoData.usuario.nombre.split(' ')[0],
     pedidoData.numeroPedido,
-    pedidoData.cantidadViandas,
-    pedidoData.tipoMascota === 'perro' ? 'perro' : 'gato',
+    cantidadTotal,
+    tipoMascotaPrincipal === 'perro' ? 'perro' : 'gato',
     pedidoData.entrega.tipo === 'retiro' ? 'retiro' : 'envío a tu domicilio',
     pedidoData.entrega.fecha
   ];
@@ -602,11 +610,19 @@ export const notificarPedidoListo = async (pedidoData) => {
  * Notificación: Pedido Entregado
  */
 export const notificarPedidoEntregado = async (pedidoData) => {
+  let cantidadTotal = 0;
+  let tipoMascotaPrincipal = 'perro';
+
+  if (pedidoData.viandas && Array.isArray(pedidoData.viandas)) {
+    cantidadTotal = pedidoData.viandas.reduce((sum, v) => sum + (v.cantidadViandas || 0), 0);
+    tipoMascotaPrincipal = pedidoData.viandas[0]?.mascotaTipo || 'perro';
+  }
+
   const variables = [
     pedidoData.usuario.nombre.split(' ')[0],
     pedidoData.numeroPedido,
-    pedidoData.tipoMascota === 'perro' ? 'perro' : 'gato',
-    pedidoData.cantidadViandas
+    tipoMascotaPrincipal === 'perro' ? 'perro' : 'gato',
+    cantidadTotal
   ];
 
   return await enviarWhatsApp(
